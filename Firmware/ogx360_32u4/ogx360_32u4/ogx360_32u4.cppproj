@@ -460,6 +460,12 @@
     <Compile Include="include\libraries\USB Host Shield\avrpins.h">
       <SubType>compile</SubType>
     </Compile>
+    <Compile Include="include\libraries\USB Host Shield\BTD.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="include\libraries\USB Host Shield\BTHID.h">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="include\libraries\USB Host Shield\confdescparser.h">
       <SubType>compile</SubType>
     </Compile>
@@ -467,6 +473,12 @@
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="include\libraries\USB Host Shield\hexdump.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="include\libraries\USB Host Shield\hidboot.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="include\libraries\USB Host Shield\hiduniversal.h">
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="include\libraries\USB Host Shield\hidusagestr.h">
@@ -485,6 +497,15 @@
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="include\libraries\USB Host Shield\printhex.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="include\libraries\USB Host Shield\PS4BT.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="include\libraries\USB Host Shield\PS4Parser.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="include\libraries\USB Host Shield\PS4USB.h">
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="include\libraries\USB Host Shield\settings.h">
@@ -538,6 +559,9 @@
     <Compile Include="src\config\LUFAConfig.h">
       <SubType>compile</SubType>
     </Compile>
+    <Compile Include="src\libraries\arduino\abi.cpp">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="src\libraries\arduino\HardwareSerial.cpp">
       <SubType>compile</SubType>
     </Compile>
@@ -577,10 +601,25 @@
     <Compile Include="src\libraries\arduino\WString.cpp">
       <SubType>compile</SubType>
     </Compile>
+    <Compile Include="src\libraries\USB Host Shield\BTD.cpp">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\libraries\USB Host Shield\BTHID.cpp">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\libraries\USB Host Shield\hidboot.cpp">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\libraries\USB Host Shield\hiduniversal.cpp">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="src\libraries\USB Host Shield\message.cpp">
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="src\libraries\USB Host Shield\parsetools.cpp">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\libraries\USB Host Shield\PS4Parser.cpp">
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="src\libraries\USB Host Shield\Usb.cpp">

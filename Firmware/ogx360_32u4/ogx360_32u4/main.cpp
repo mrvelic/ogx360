@@ -31,13 +31,21 @@ In settings.h you can configure the following options:
 
 
 #ifdef MASTER
-	#include <XBOXRECV.h>
 	#include <usbhub.h>
+	#ifdef SUPPORTWIRELESSXBOX360
+	#include <XBOXRECV.h>
+	#endif
 	#ifdef SUPPORTWIREDXBOXONE
 	#include <XBOXONE.h>
 	#endif
 	#ifdef SUPPORTWIREDXBOX360
 	#include <XBOXUSB.h>
+	#endif
+	#ifdef SUPPORTBTPS4
+	#include <PS4BT.h>
+	#endif
+	#ifdef SUPPORTWIREDPS4
+	#include <PS4USB.h>
 	#endif
 #endif
 
@@ -59,12 +67,15 @@ USB_XboxSteelBattalion_Feedback_t XboxOGSteelBattalionFeedback;	//Steel Battalio
 #ifdef MASTER
 USB UsbHost;
 USBHub Hub(&UsbHost);
-XBOXRECV Xbox360Wireless(&UsbHost);
 uint8_t getButtonPress(ButtonEnum b, uint8_t controller);
 int16_t getAnalogHat(AnalogHatEnum a, uint8_t controller);
 void setRumbleOn(uint8_t lValue, uint8_t rValue, uint8_t controller);
 void setLedOn(LEDEnum led, uint8_t controller);
+void disconnectController(uint8_t controller);
 bool controllerConnected(uint8_t controller);
+#ifdef SUPPORTWIRELESSXBOX360
+XBOXRECV Xbox360Wireless(&UsbHost);
+#endif
 #ifdef SUPPORTWIREDXBOXONE
 XBOXONE XboxOneWired1(&UsbHost);
 XBOXONE XboxOneWired2(&UsbHost);
@@ -78,6 +89,21 @@ XBOXUSB Xbox360Wired2(&UsbHost);
 XBOXUSB Xbox360Wired3(&UsbHost);
 XBOXUSB Xbox360Wired4(&UsbHost);
 XBOXUSB *Xbox360Wired[4] = {&Xbox360Wired1, &Xbox360Wired2, &Xbox360Wired3, &Xbox360Wired4};
+#endif
+#ifdef SUPPORTWIREDPS4
+PS4USB PS4Wired1(&UsbHost);
+PS4USB PS4Wired2(&UsbHost);
+PS4USB PS4Wired3(&UsbHost);
+PS4USB PS4Wired4(&UsbHost);
+PS4USB *PS4Wired[4] = {&PS4Wired1, &PS4Wired2, &PS4Wired3, &PS4Wired4};
+#endif
+#ifdef SUPPORTBTPS4
+BTD Btd(&UsbHost);
+PS4BT PS4Wireless1(&Btd, PAIR);
+PS4BT PS4Wireless2(&Btd, PAIR);
+PS4BT PS4Wireless3(&Btd, PAIR);
+PS4BT PS4Wireless4(&Btd, PAIR);
+PS4BT *PS4Wireless[4] = {&PS4Wireless1, &PS4Wireless2, &PS4Wireless3, &PS4Wireless4};
 #endif
 #endif
 
@@ -172,6 +198,7 @@ int main(void)
 	Wire.setClock(400000);
 	//Serial1.print(F("\r\nThis is the host controller"));
 
+	#ifdef SUPPORTWIRELESSXBOX360
 	//Init all chatpad led FIFO queues 0xFF means empty spot.
 	for(uint8_t i=0; i<4;i++){
 		Xbox360Wireless.chatPadLedQueue[i].nextLed1=0xFF;
@@ -180,6 +207,7 @@ int main(void)
 		Xbox360Wireless.chatPadLedQueue[i].nextLed4=0xFF;
 		Xbox360Wireless.chatPadInitNeeded[i]=1;
 	}
+	#endif
 	#endif
 	
 	//Setup EEPROM for variable sensitivity adjustment for SB controller.
@@ -566,7 +594,9 @@ int main(void)
 				//All this code is in else if chains to ensure only one command is ever sent per loop per OUT endpoint.
 				//A Seperate ChatPad Led timer is used to control chat led commands as they where very particular in there update speeds.
 				static uint32_t commandTimer[4]		={0,0,0,0};
+				#ifdef SUPPORTWIRELESSXBOX360
 				static uint32_t chatPadLedTimer[4]	={0,0,0,0};
+				#endif
 				static uint32_t xboxHoldTimer[4]		={0,0,0,0};
 				if(millis()-commandTimer[i]>16){
 					//If you hold the XBOX button for more than ~1second, turn off controller
@@ -578,8 +608,7 @@ int main(void)
 							XboxOGDuke[i].dButtons = 0x00;
 							setRumbleOn(0, 0, i);
 							delay(10);
-							if(Xbox360Wireless.Xbox360Connected[i]) Xbox360Wireless.disconnect(i);
-							Xbox360Wireless.chatPadInitNeeded[i]=1;
+							disconnectController(i);
 						}
 					//START+BACK TRIGGERS is a standard soft reset command. We turn off the rumble motors here to prevent them getting locked on
 					//if you happen to press this reset combo mid rumble.
@@ -594,6 +623,8 @@ int main(void)
 					} else {
 						xboxHoldTimer[i]=0; //Reset the XBOX button hold time counter.
 						//Send ChatPad initialization packet if needed
+						
+						#ifdef SUPPORTWIRELESSXBOX360
 						if (Xbox360Wireless.Xbox360Connected[i] && Xbox360Wireless.chatPadInitNeeded[i]==1 && i==0 && commandToggle[i]%2){
 							Xbox360Wireless.enableChatPad(i);
 							Xbox360Wireless.chatPadInitNeeded[i]=0;
@@ -627,7 +658,9 @@ int main(void)
 							chatPadLedTimer[i]=millis();
 						
 						//Send rumble commands to controller if applicable.
-						} else if (XboxOGDuke[i].rumbleUpdate==1 && commandToggle[i]%2){ //Prioritise chatpad keep alive packets if needed
+						} else 
+						#endif 
+						if (XboxOGDuke[i].rumbleUpdate==1 && commandToggle[i]%2){ //Prioritise chatpad keep alive packets if needed
 							setRumbleOn(XboxOGDuke[i].left_actuator, XboxOGDuke[i].right_actuator, i);
 							XboxOGDuke[i].rumbleUpdate=0;
 						}
@@ -644,10 +677,14 @@ int main(void)
 							#endif
 							break;
 							case 220:
+							#ifdef SUPPORTWIRELESSXBOX360
 							if(Xbox360Wireless.Xbox360Connected[i] && Xbox360Wireless.chatPadInitNeeded[i]==0) Xbox360Wireless.chatPadKeepAlive1(i);
+							#endif
 							break;
 							case 230:
+							#ifdef SUPPORTWIRELESSXBOX360
 							if(Xbox360Wireless.Xbox360Connected[i] && Xbox360Wireless.chatPadInitNeeded[i]==0) Xbox360Wireless.chatPadKeepAlive2(i);
+							#endif
 							break;
 							case 240:
 							setLedOn((LEDEnum)(i+1),i);
@@ -712,7 +749,10 @@ int main(void)
 		} else {
 			digitalWrite(ARDUINO_LED_PIN, HIGH);
 			USB_Detach(); //Disconnect from the OG Xbox port.
+			
+			#ifdef SUPPORTWIRELESSXBOX360
 			Xbox360Wireless.chatPadInitNeeded[0]=1;
+			#endif
 		}
 		
 		
@@ -791,13 +831,62 @@ void applyDeadzone(float* pOutX, float* pOutY, float x, float y, float deadZoneL
 }
 #endif
 
-
-/* Applies a scaled radial deadzone both at the central position and the outer edge */
 #ifdef MASTER
 //Parse button presses for each type of controller
+#if defined SUPPORTBTPS4 || defined SUPPORTWIREDPS4
+ButtonEnum getPS4Button(ButtonEnum b) {
+	switch(b) {
+		case A:
+		return CROSS;
+		case B:
+		return CIRCLE;
+		case X:
+		return SQUARE;
+		case Y:
+		return TRIANGLE;
+		case START:
+		return OPTIONS;
+		case BACK:
+		return SHARE;
+		case XBOX:
+		return PS;
+		default:
+		return b;
+	}
+}
+
+ColorsEnum getPS4Color(uint8_t controller) {
+	switch(controller) {
+		case 0:
+		return Green;
+		case 1:
+		return Blue;
+		case 2:
+		return Purple;
+		case 3:
+		return Red;
+	}
+	
+	return Blue;
+}
+
+int16_t getPS4AnalogValue(PS4Parser* ps4, AnalogHatEnum a) {
+	uint16_t ps4Hat = ps4->getAnalogHat(a) * 256;
+	int16_t scaledHat = (int16_t)(ps4Hat - 32768);
+	
+	if(a == LeftHatY || a == RightHatY) {
+		return scaledHat * -1;
+	}
+	
+	return scaledHat;
+}
+#endif
+
 uint8_t getButtonPress(ButtonEnum b, uint8_t controller){
+	#ifdef SUPPORTWIRELESSXBOX360
 	if(Xbox360Wireless.Xbox360Connected[controller])
 		return Xbox360Wireless.getButtonPress(b, controller);
+	#endif
 	
 	#ifdef SUPPORTWIREDXBOX360
 	if (Xbox360Wired[controller]->Xbox360Connected)
@@ -814,16 +903,35 @@ uint8_t getButtonPress(ButtonEnum b, uint8_t controller){
 	}
 	#endif
 	
+	#ifdef SUPPORTWIREDPS4
+	if(PS4Wired[controller]->connected()) {
+		if(b==L2 || b==R2){
+			return PS4Wired[controller]->getAnalogButton(b);
+		}
+		
+		return PS4Wired[controller]->getButtonPress(getPS4Button(b));
+	}
+	#endif
+	
+	#ifdef SUPPORTBTPS4
+	if(PS4Wireless[controller]->connected()) {
+		if(b==L2 || b==R2){
+			return PS4Wireless[controller]->getAnalogButton(b);
+		}
+		
+		return PS4Wireless[controller]->getButtonPress(getPS4Button(b));
+	}
+	#endif
+	
 	return 0;
 }
 
-
-
-
 //Parse analog stick requests for each type of controller.
 int16_t getAnalogHat(AnalogHatEnum a, uint8_t controller){
+	#ifdef SUPPORTWIRELESSXBOX360
 	if(Xbox360Wireless.Xbox360Connected[controller])
 		return Xbox360Wireless.getAnalogHat(a, controller);
+	#endif
 		
 	#ifdef SUPPORTWIREDXBOX360
 	if (Xbox360Wired[controller]->Xbox360Connected)
@@ -835,31 +943,63 @@ int16_t getAnalogHat(AnalogHatEnum a, uint8_t controller){
 		return XboxOneWired[controller]->getAnalogHat(a);
 	#endif
 	
+	#ifdef SUPPORTWIREDPS4
+	if (PS4Wired[controller]->connected()) {
+		return getPS4AnalogValue(PS4Wired[controller], a);
+	}
+	#endif
+	
+	#ifdef SUPPORTBTPS4
+	if (PS4Wireless[controller]->connected()) {
+		return getPS4AnalogValue(PS4Wireless[controller], a);
+	}
+	#endif
+	
 	return 0;
 }
 
 //Parse rumble activation requests for each type of controller.
 void setRumbleOn(uint8_t lValue, uint8_t rValue, uint8_t controller){
+	#ifdef SUPPORTWIRELESSXBOX360
 	if(Xbox360Wireless.Xbox360Connected[controller])
 		Xbox360Wireless.setRumbleOn(lValue, rValue, controller);
+	#endif
+	
+	#ifdef SUPPORTBTPS4
+	if (PS4Wireless[controller]->connected()){
+		PS4Wireless[controller]->setRumbleOn(lValue, rValue);
+	}
+	#endif
+	
+	#ifdef SUPPORTWIREDRUMBLE
 	
 	#ifdef SUPPORTWIREDXBOX360
 	if (Xbox360Wired[controller]->Xbox360Connected){
-		//Xbox360Wired[controller]->setRumbleOn(lValue, rValue); //If you have an externally power USB 2.0 hub you can uncomment this to enable rumble
+		Xbox360Wired[controller]->setRumbleOn(lValue, rValue); //If you have an externally power USB 2.0 hub you can uncomment this to enable rumble
 	}
 	#endif
 	
 	#ifdef SUPPORTWIREDXBOXONE
 	if (XboxOneWired[controller]->XboxOneConnected){
-		//XboxOneWired[controller]->setRumbleOn(lValue/8, rValue/8, lValue/2, rValue/2);
+		XboxOneWired[controller]->setRumbleOn(lValue/8, rValue/8, lValue/2, rValue/2);
 	}
+	#endif
+	
+	#ifdef SUPPORTWIREDPS4
+	if (PS4Wired[controller]->connected()){
+		PS4Wired[controller]->setRumbleOn(lValue, rValue);
+	}
+	#endif
+	
 	#endif
 }
 
 //Parse LED activation requests for each type of controller.
 void setLedOn(LEDEnum led, uint8_t controller){
+	#ifdef SUPPORTWIRELESSXBOX360
 	if(Xbox360Wireless.Xbox360Connected[controller])
 		Xbox360Wireless.setLedOn(led,controller);
+	#endif
 	
 	#ifdef SUPPORTWIREDXBOX360
 	if (Xbox360Wired[controller]->Xbox360Connected)
@@ -871,11 +1011,36 @@ void setLedOn(LEDEnum led, uint8_t controller){
 		//no LEDs on Xbox One Controller. I think it is possible to adjust brightness but this is not implemented.
 	}
 	#endif
+	
+	#ifdef SUPPORTWIREDPS4
+	if (PS4Wired[controller]->connected()){
+		PS4Wired[controller]->setLed(getPS4Color(controller));
+	}
+	#endif
+	
+	#ifdef SUPPORTBTPS4
+	if (PS4Wireless[controller]->connected()){
+		PS4Wireless[controller]->setLed(getPS4Color(controller));
+	}
+	#endif
+}
+
+void disconnectController(uint8_t controller) {
+	#ifdef SUPPORTWIRELESSXBOX360
+	if(Xbox360Wireless.Xbox360Connected[controller]) Xbox360Wireless.disconnect(controller);
+	Xbox360Wireless.chatPadInitNeeded[controller]=1;
+	#endif
+	
+	#ifdef SUPPORTBTPS4
+	PS4Wireless[controller]->disconnect();
+	#endif
 }
 
 bool controllerConnected(uint8_t controller){
+	#ifdef SUPPORTWIRELESSXBOX360
 	if (Xbox360Wireless.Xbox360Connected[controller])
 		return 1;
+	#endif
 	
 	#ifdef SUPPORTWIREDXBOX360
 	if (Xbox360Wired[controller]->Xbox360Connected)
@@ -884,6 +1049,16 @@ bool controllerConnected(uint8_t controller){
 	
 	#ifdef SUPPORTWIREDXBOXONE
 	if (XboxOneWired[controller]->XboxOneConnected)
+		return 1;
+	#endif
+	
+	#ifdef SUPPORTWIREDPS4
+	if (PS4Wired[controller]->connected())
+		return 1;
+	#endif
+	
+	#ifdef SUPPORTBTPS4
+	if (PS4Wireless[controller]->connected())
 		return 1;
 	#endif
 	return 0;
